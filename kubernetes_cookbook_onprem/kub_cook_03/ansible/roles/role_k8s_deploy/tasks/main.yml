@@ -1,0 +1,42 @@
+---
+#Ajout du repo Kubernetes pour la récupération des paquets officiels (installation vanilla)
+- name: "Repository Configuration"
+  import_tasks: 01-repos.yml
+  tags:
+    - role_k8s_deploy.repos    
+
+#Lancement de l'installation des prerequis
+- name: "Prerequis"
+  import_tasks: 02-prerequis.yml
+  tags:
+    - role_k8s_deploy.prerequis
+
+#Configuration des flux réseau avec ouverture des ports
+- name: "iptables configuration"
+  import_tasks: 03-iptables.yml
+  tags:
+    - role_k8s_deploy.iptables 
+
+#Installation du runtime de conteneur "containerd"
+- name: "containerd installation"
+  import_tasks: 04-containerd.yml
+  tags:
+    - role_k8s_deploy.containerd
+
+#Création des fichiers de configuration pour le déploiement de Kubernetes
+- name: "K8S configuration"
+  import_tasks: 05-configure-k8s.yml
+  tags:
+    - role_k8s_deploy.configure-k8s    
+
+#Configuration et installation des loadbalancer    
+- name: "HAproxy configuration"
+  import_tasks: 06-configure-haproxy.yml
+  tags:
+    - role_k8s_deploy.haproxy 
+
+#Création de la configuration traefik
+- name: "Traefik config"
+  import_tasks: 07-configure-traefik.yml
+  tags:
+    - role_k8s_deploy.traefik                      

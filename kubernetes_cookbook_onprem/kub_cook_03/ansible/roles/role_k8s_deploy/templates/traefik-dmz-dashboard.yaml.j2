@@ -1,0 +1,28 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: traefik-dmz-dashboard
+  namespace: "{{ var_namespace_traefik_prd_dmz }}"
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - kind: Rule
+      match: Host(`{{ var_url_traefik_dmz }}`) && (PathPrefix(`/api`) || PathPrefix(`/dashboard`))
+      services:
+        - name: api@internal
+          kind: TraefikService
+      middlewares:
+        - name: traefik-dashboard-dmz-auth # Referencing the BasicAuth middleware
+          namespace: {{ var_namespace_traefik_prd_dmz }}
+  tls:
+     secretName: sec-certif-traefik-k8s-dmz
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: traefik-dashboard-dmz-auth
+  namespace: {{ var_namespace_traefik_prd_dmz }}
+spec:
+  basicAuth:
+    secret: sec-traefik-dashboard-dmz-password

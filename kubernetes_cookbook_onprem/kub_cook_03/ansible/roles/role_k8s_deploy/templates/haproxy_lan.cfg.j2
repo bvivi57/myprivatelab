@@ -1,0 +1,77 @@
+global
+defaults
+        timeout client          30s
+        timeout server          30s
+        timeout connect         30s
+
+#frontend k8s_unifi_stun_front
+#        bind    {{ var_vip_kub_vip }}:{{ var_traefik_unifi_stun }}
+#        default_backend         k8s_unifi_stun_back
+
+#frontend k8s_unifi_ap_discovery_front
+#        bind    {{ var_vip_kub_vip }}:{{ var_traefik_unifi_stun }}
+#        default_backend         k8s_unifi_ap_discovery_back
+
+#backend k8s_unifi_ap_discovery_back
+#        server                  prdk8sctp501 192.168.10.71:{{ var_traefik_unifi_ap_discovery }} check
+#        server                  prdk8sctp502 192.168.10.72:{{ var_traefik_unifi_ap_discovery }} check
+#        server                  prdk8sctp503 192.168.10.73:{{ var_traefik_unifi_ap_discovery }} check 
+
+#frontend k8s_unifi_discoverabl_l2_front
+#        bind    {{ var_vip_kub_vip }}:{{ var_traefik_unifi_discoverabl_l2 }}
+#        default_backend         k8s_unifi_discoverabl_l2_back
+
+#backend k8s_unifi_discoverabl_l2_back
+#        server                  prdk8sctp501 192.168.10.71:{{ var_traefik_unifi_discoverabl_l2 }} check
+#        server                  prdk8sctp502 192.168.10.72:{{ var_traefik_unifi_discoverabl_l2 }} check
+#        server                  prdk8sctp503 192.168.10.73:{{ var_traefik_unifi_discoverabl_l2 }} check
+
+#backend k8s_unifi_stun_back
+#        server                  prdk8sctp501 192.168.10.71:{{ var_traefik_unifi_stun }} check
+#        server                  prdk8sctp502 192.168.10.72:{{ var_traefik_unifi_stun }} check
+#        server                  prdk8sctp503 192.168.10.73:{{ var_traefik_unifi_stun }} check          
+
+frontend k8s_master_node_front
+        bind    {{ var_vip_kub_vip }}:{{ var_kube_api_port }}
+        default_backend         k8s_master_node_back
+
+backend k8s_master_node_back
+        mode                    tcp
+        option  tcp-check
+        server                  prdk8sctp501 192.168.10.71:{{ var_kube_api_port }} check
+        server                  prdk8sctp502 192.168.10.72:{{ var_kube_api_port }} check
+        server                  prdk8sctp503 192.168.10.73:{{ var_kube_api_port }} check
+
+frontend k8s_master_traefik_http_front
+        bind    {{ var_vip_kub_vip }}:80
+        default_backend         k8s_master_traefik_http_back
+
+backend k8s_master_traefik_http_back
+        mode                    tcp
+        option  tcp-check
+        server                  prdk8sctp501 192.168.10.71:80 check
+        server                  prdk8sctp502 192.168.10.72:80 check
+        server                  prdk8sctp503 192.168.10.73:80 check        
+
+frontend k8s_master_traefik_https_front
+        bind    {{ var_vip_kub_vip }}:443
+        default_backend         k8s_master_traefik_https_back
+
+backend k8s_master_traefik_https_back
+        mode                    tcp
+        option  tcp-check
+        server                  prdk8sctp501 192.168.10.71:443 check
+        server                  prdk8sctp502 192.168.10.72:443 check
+        server                  prdk8sctp503 192.168.10.73:443 check        
+
+frontend k8s_unifi_device_com_front
+        bind    {{ var_vip_kub_vip }}:{{ var_traefik_unifi_device_com }}
+        default_backend         k8s_unifi_device_com_back
+
+backend k8s_unifi_device_com_back
+        mode                    tcp
+        option  tcp-check
+        server                  prdk8sctp501 192.168.10.71:{{ var_traefik_unifi_device_com }} check
+        server                  prdk8sctp502 192.168.10.72:{{ var_traefik_unifi_device_com }} check
+        server                  prdk8sctp503 192.168.10.73:{{ var_traefik_unifi_device_com }} check        
+

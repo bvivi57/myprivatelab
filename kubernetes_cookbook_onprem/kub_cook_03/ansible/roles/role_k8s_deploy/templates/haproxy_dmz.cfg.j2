@@ -1,0 +1,28 @@
+global
+defaults
+        timeout client          30s
+        timeout server          30s
+        timeout connect         30s
+
+
+frontend k8s_master_traefik_http_front
+        bind    {{ var_vip_kub_vip_dmz }}:80
+        default_backend         k8s_master_traefik_http_back
+
+backend k8s_master_traefik_http_back
+        mode                    tcp
+        option  tcp-check
+        server                  prdk8snod511 192.168.5.81:80 check
+        server                  prdk8snod512 192.168.5.82:80 check
+      
+
+frontend k8s_master_traefik_https_front
+        bind    {{ var_vip_kub_vip_dmz }}:443
+        default_backend         k8s_master_traefik_https_back
+
+backend k8s_master_traefik_https_back
+        mode                    tcp
+        option  tcp-check
+        server                  prdk8snod511 192.168.5.81:443 check
+        server                  prdk8snod512 192.168.5.82:443 check
+      

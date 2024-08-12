@@ -1,0 +1,233 @@
+---
+#Ouverture du post SSH
+- name: Open SSH port
+  become: yes 
+  iptables:
+   chain: INPUT
+   destination_port: 22
+   protocol: tcp
+   jump: ACCEPT
+  tags: role_k8s_deploy.iptables_ssh
+
+#Usage du mode nft de iptable
+- name: iptables get binary
+  become: yes 
+  #command: update-alternatives --set iptables /usr/sbin/iptables-legacy
+  command: update-alternatives --set iptables /usr/sbin/iptables-nft
+  register: iptables_alternatives
+
+#Autoriser ICMP
+- name: Autorise ICMP
+  become: yes 
+  iptables:
+   chain: INPUT
+   protocol: icmp
+   jump: ACCEPT
+  tags: role_k8s_deploy.iptables_ping
+
+#Ouverture du port de l'agent Kubelet
+- name: Open iptable port for kubelet port 
+  become: yes 
+  iptables:
+   chain: INPUT
+   destination_port: "{{ var_kubelet_port }}"
+   protocol: tcp
+   jump: ACCEPT
+  tags: role_k8s_deploy.iptables_kubelet
+
+#Ouverture du port UDP pour l'usage de VXLAN par Cilium
+- name: Open iptable UDP vxlan port for cilium
+  become: yes 
+  iptables:
+   chain: INPUT
+   destination_port: "{{ var_cilium_udp_vxlan_port }}"
+   protocol: udp
+   jump: ACCEPT
+  tags: role_k8s_deploy.iptables_cilium_vxlan-udp 
+  when: "'TAG-COOLCORP-ROLE-MASTER' in tags or 'TAG-COOLCORP-ROLE-WORKER' in tags"   
+
+#Ouverture du port TCP pour les health check réalisés par Cilium
+- name: Open iptable TCP health port for cilium
+  become: yes 
+  iptables:
+   chain: INPUT
+   destination_port: "{{ var_cilium_tcp_healt_port }}"
+   protocol: tcp
+   jump: ACCEPT
+  tags: role_k8s_deploy.iptables_cilium_health-tcp 
+  when: "'TAG-COOLCORP-ROLE-MASTER' in tags or 'TAG-COOLCORP-ROLE-WORKER' in tags"   
+
+#Ouverture du port TCP suplementaire pour Cilium
+- name: Open iptable TCP obser port for cilium
+  become: yes 
+  iptables:
+   chain: INPUT
+   destination_port: "{{ var_cilium_tcp_obser_port }}"
+   protocol: tcp
+   jump: ACCEPT
+  tags: role_k8s_deploy.iptables_cilium_obser-tcp 
+  when: "'TAG-COOLCORP-ROLE-MASTER' in tags or 'TAG-COOLCORP-ROLE-WORKER' in tags"      
+
+#Ouverture du port TCP suplementaire pour Cilium
+- name: Open iptable TCP obser port for cilium
+  become: yes 
+  iptables:
+   chain: INPUT
+   destination_port: "{{ var_cilium_tcp_relay_port }}"
+   protocol: tcp
+   jump: ACCEPT
+  tags: role_k8s_deploy.iptables_cilium_obser-tcp 
+  when: "'TAG-COOLCORP-ROLE-MASTER' in tags or 'TAG-COOLCORP-ROLE-WORKER' in tags"   
+
+#Ouverture du port TCP suplementaire pour Cilium
+- name: Open iptable TCP hubble-peer port for cilium
+  become: yes 
+  iptables:
+   chain: INPUT
+   destination_port: "{{ var_cilium_tcp_hubblepeer_port }}"
+   protocol: tcp
+   jump: ACCEPT
+  tags: role_k8s_deploy.iptables_hubblepeer-tcp 
+  when: "'TAG-COOLCORP-ROLE-MASTER' in tags or 'TAG-COOLCORP-ROLE-WORKER' in tags"        
+
+#Ouverture du port TCP de l' API Serveur pour les control plan
+- name: Open iptable kub API port
+  become: yes 
+  iptables:
+   chain: INPUT
+   destination_port: "{{ var_kube_api_port }}"
+   protocol: tcp
+   jump: ACCEPT
+  when: "'TAG-COOLCORP-ROLE-MASTER' in tags or 'TAG-COOLCORP-ROLE-HAPROXY' in tags"
+  tags: role_k8s_deploy.iptables_kube-api-port 
+
+#Ouverture du port etcd pour les control plan
+- name: Open iptable etcd API port
+  become: yes 
+  iptables:
+   chain: INPUT
+   destination_port: "{{ var_etcd_port  }}"
+   protocol: tcp
+   jump: ACCEPT
+  when: "'TAG-COOLCORP-ROLE-MASTER' in tags" 
+  tags: role_k8s_deploy.iptables_kube-api-port 
+
+#Ouverture du port etcd pour les control plan 
+- name: Open iptable etcd API port member
+  become: yes 
+  iptables:
+   chain: INPUT
+   destination_port: "{{ var_etcd_member_port  }}"
+   protocol: tcp
+   jump: ACCEPT
+  when: "'TAG-COOLCORP-ROLE-MASTER' in tags" 
+  tags: role_k8s_deploy.iptables_kube-api-port   
+
+#Ouverture du port 80 pour les control plane et les nlb
+- name: Open iptable 80
+  become: yes 
+  iptables:
+   chain: INPUT
+   destination_port: "80"
+   protocol: tcp
+   jump: ACCEPT
+  when: "'TAG-COOLCORP-ROLE-MASTER' in tags or 'TAG-COOLCORP-ROLE-HAPROXY' in tags"
+  tags: role_k8s_deploy.iptables.http 
+
+#Ouverture du port 443 pour les control plane et les nlb
+- name: Open iptable 443
+  become: yes 
+  iptables:
+   chain: INPUT
+   destination_port: "443"
+   protocol: tcp
+   jump: ACCEPT
+  when: "'TAG-COOLCORP-ROLE-MASTER' in tags or 'TAG-COOLCORP-ROLE-HAPROXY' in tags"
+  tags: role_k8s_deploy.iptables.https  
+
+#Ouverture du port 443 pour les worker en dmz
+- name: Open iptable 443
+  become: yes 
+  iptables:
+   chain: INPUT
+   destination_port: "443"
+   protocol: tcp
+   jump: ACCEPT
+  when: "'TAG-COOLCORP-ROLE-WORKER' in tags and 'TAG-COOLCORP-NETWORK-WEB' in tags"
+  tags: role_k8s_deploy.iptables.dmz-https  
+
+#Ouverture du port 80 pour les worker en dmz
+- name: Open iptable 80
+  become: yes 
+  iptables:
+   chain: INPUT
+   destination_port: "80"
+   protocol: tcp
+   jump: ACCEPT
+  when: "'TAG-COOLCORP-ROLE-WORKER' in tags and 'TAG-COOLCORP-NETWORK-WEB' in tags"
+  tags: role_k8s_deploy.iptables.dmz-http    
+
+
+- name: Open unifi unifi_device_com
+  become: yes 
+  iptables:
+   chain: INPUT
+   destination_port: "{{ var_traefik_unifi_device_com }}"
+   protocol: tcp
+   jump: ACCEPT
+  when: "'TAG-COOLCORP-ROLE-MASTER' in tags or 'TAG-COOLCORP-ROLE-HAPROXY' in tags"
+  tags: role_k8s_deploy.iptables.unifi  
+
+- name: Open unifi unifi_stun
+  become: yes 
+  iptables:
+   chain: INPUT
+   destination_port: "{{ var_traefik_unifi_stun }}"
+   protocol: udp
+   jump: ACCEPT
+  when: "'TAG-COOLCORP-ROLE-MASTER' in tags or 'TAG-COOLCORP-ROLE-HAPROXY' in tags"
+  tags: role_k8s_deploy.iptables.unifi     
+
+- name: Open unifi ap_discovery
+  become: yes 
+  iptables:
+   chain: INPUT
+   destination_port: "{{ var_traefik_unifi_ap_discovery }}"
+   protocol: udp
+   jump: ACCEPT
+  when: "'TAG-COOLCORP-ROLE-MASTER' in tags or 'TAG-COOLCORP-ROLE-HAPROXY' in tags"
+  tags: role_k8s_deploy.iptables.unifi   
+
+- name: Open unifi unifi_discoverabl_l2
+  become: yes 
+  iptables:
+   chain: INPUT
+   destination_port: "{{ var_traefik_unifi_discoverabl_l2 }}"
+   protocol: udp
+   jump: ACCEPT
+  when: "'TAG-COOLCORP-ROLE-MASTER' in tags or 'TAG-COOLCORP-ROLE-HAPROXY' in tags"
+  tags: role_k8s_deploy.iptables.unifi          
+
+#ouverture des ports de service node 
+- name: Open node service port
+  become: yes 
+  iptables:
+   chain: INPUT
+   destination_port: "{{ var_node_service_port }}"
+   protocol: tcp
+   jump: ACCEPT
+  when: "'TAG-COOLCORP-ROLE-WORKER' in tags"  
+  tags: role_k8s_deploy.iptables_nodeservice
+
+#Sauvegarde de la conf iptable
+- name: save iptables
+  become: yes 
+  shell: iptables-save > /etc/systemd/scripts/ip4save
+  register: iptables_alternatives
+  tags: role_k8s_deploy.iptables.backup
+
+#Sreboot
+- name: Unconditionally reboot the machine with all defaults
+  become: yes
+  reboot:
+  tags: role_k8s_deploy.prerequis.reboot

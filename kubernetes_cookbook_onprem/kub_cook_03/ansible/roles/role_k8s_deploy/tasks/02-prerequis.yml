@@ -1,0 +1,57 @@
+---
+#Désactivation de la SWARP sur tous les serveurs
+- name: Disable swap (if configured).
+  become: yes 
+  command: swapoff -a
+  tags: role_k8s_deploy.prerequis.swap
+
+#Message de debug pour connaitre sur quel type de serveur s'exécute les actions
+- debug:
+    msg: "{{ tags }}"
+
+#installation des packages sur les control plan (liste des paquets défini dans "main.yml" du dossier "defaults")
+- name: Install basic packages for master
+  become: yes 
+  tdnf:
+    update_cache: yes
+    name: "{{ var_k8s_packages_master }}"
+    state: present
+  when: "'TAG-COOLCORP-ROLE-MASTER' in tags"
+  tags: role_k8s_deploy.prerequis.packages_master
+
+#installation des packages sur les workers (liste des paquets défini dans "main.yml" du dossier "defaults")  
+- name: Install basic packages for worker
+  become: yes 
+  tdnf:
+    update_cache: yes
+    name: "{{ var_k8s_packages_worker }}"
+    state: present
+  when: "'TAG-COOLCORP-ROLE-WORKER' in tags"   
+  tags: role_k8s_deploy.prerequis.packages_worker
+
+#suppression des paquets inutiles ou conflictuels (liste des paquets défini dans "main.yml" du dossier "defaults")  
+- name: remove non necessary packages
+  become: yes 
+  tdnf:
+    update_cache: yes
+    name: "{{ var_remove_packages }}"
+    state: absent  
+  tags: role_k8s_deploy.prerequis.remove-package   
+
+#copie du binaire helm depuis le dossier "files" vers /usr/local/bin/ mais uniquement sur les control plan
+- name: install helm
+  become: yes
+  copy:
+    src: helm
+    dest: /usr/local/bin/helm
+    owner: "{{ var_admin_user}}"
+    mode: u=rwx,g=rx,o=r  
+  when: "'TAG-COOLCORP-ROLE-MASTER' in tags or 'TAG-COOLCORP-NETWORK-WEB' in tags"  
+  tags: role_k8s_deploy.prerequis.helm
+
+#reboot des machines
+- name: Unconditionally reboot the machine with all defaults
+  become: yes
+  reboot:
+  tags: role_k8s_deploy.prerequis.reboot
+

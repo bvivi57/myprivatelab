@@ -1,0 +1,28 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: traefik-lan-dashboard
+  namespace: "{{ var_namespace_traefik_prd_lan }}"
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - kind: Rule
+      match: Host(`{{ var_url_traefik_lan }}`) && (PathPrefix(`/api`) || PathPrefix(`/dashboard`))
+      services:
+        - name: api@internal
+          kind: TraefikService
+      middlewares:
+        - name: traefik-dashboard-lan-auth # Referencing the BasicAuth middleware
+          namespace: {{ var_namespace_traefik_prd_lan }}
+  tls:
+     secretName: sec-certif-traefik-k8s-lan
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: traefik-dashboard-lan-auth
+  namespace: {{ var_namespace_traefik_prd_lan }}
+spec:
+  basicAuth:
+    secret: sec-traefik-dashboard-lan-password

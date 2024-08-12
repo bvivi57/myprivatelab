@@ -1,0 +1,103 @@
+#####Variables systeme
+var_lan_tag: TAG-NETWORK-LAN
+var_web_tag: TAG-NETWORK-WEB
+var_ntp_server: ntp.serveur.lan
+var_domain: "domain.lan domain.dmz"
+#variable user
+var_admin_user: user_ansible
+
+######Variables Packages
+#Liste des paquets à déployer sur les control plane
+var_k8s_packages_master:
+  - kubeadm-{{ var_kub_version }}
+  - nfs-utils
+  - tdnf-plugin-repogpgcheck
+  - wget
+  - tar
+  - kubectl-{{ var_kub_version }}
+  - kubelet-{{ var_kub_version }}
+  - apparmor-parser
+  - jq
+  - cri-tools
+  - git
+  - linux
+
+#Liste des paquets à déployer sur les nodes
+var_k8s_packages_worker:
+  - kubeadm-{{ var_kub_version }}
+  - nfs-utils
+  - tdnf-plugin-repogpgcheck
+  - wget
+  - tar
+  - kubelet-{{ var_kub_version }}
+  - apparmor-parser
+  - cri-tools
+  - linux
+
+#Liste des paquets à supprimer  
+var_remove_packages:
+ - docker
+ - containerd  
+
+###############Variable Kubernetes
+#Variables utilisées pour construire le fichier de configuration de kubeadm basé sur le template kubeadm.conf.j2 du dossier templates
+var_api_version: v1beta3
+var_kub_version : "1.29.4"
+var_kub_name: kub
+var_pod_subnet: "10.11.0.0/16"
+var_service_subnet: "10.12.0.0/16"
+var_vip_kub_endpoint: kub.domain.lan
+var_vip_kub_vip: "192.168.10.91"
+var_vip_kub_vip_dmz: "192.168.5.91"
+
+#Variables pour définir les roles
+var_tag_master: TAG-ROLE-MASTER
+var_tag_worker: TAG-ROLE-WORKER
+
+
+#Variables définissant les ports à ouvrir
+#- ports "system" pour kubernetes 
+var_kubelet_port: 10250
+var_kube_api_port: 6443
+var_etcd_port: 2379
+var_etcd_member_port: 2380
+var_node_service_port: "30000:32767"
+
+#calico
+#var_calico_tcp_port: 179
+#var_calico_udp_port: 4789
+#- ports "réseau" pour le fonctionnement du CNI Cilium
+var_cilium_udp_vxlan_port: 8472
+var_cilium_tcp_healt_port: 4240
+var_cilium_tcp_obser_port: 4222
+var_cilium_tcp_relay_port: 4245
+var_cilium_tcp_hubblepeer_port: 4244
+
+#Configuration de Cilium
+var_cilium_subnet: "10.13.0.0/16"
+var_cilium_cli: "https://github.com/cilium/cilium-cli/releases/latest/download/cilium-linux-amd64.tar.gz"
+
+#Lien vers la récupération du binaire containerd
+var_containerd_binary: https://github.com/containerd/containerd/releases/download/v1.7.16/containerd-1.7.16-linux-amd64.tar.gz
+
+#informations pour la connexion au vcenter pour l'addon VMware Kubernetes
+var_vcenter: vcenter.domain.lan
+var_vcenter_user: compte_acces_vcenter
+var_vcenter_password: "password_compte_user_vcenter"
+var_vcenter_datacenter : "cluster_vmware"
+
+#Configuration de l'ingress controler "Traefik"
+var_namespace_traefik_prd_lan: inf-traefik-lan
+var_namespace_traefik_prd_dmz: inf-traefik-dmz
+var_version_traefik: "3.0.4"
+var_traefik_lan_service_account: svc-prd-traefik
+var_traefik_dmz_service_account: svc-prd-traefik-dmz
+var_url_traefik_lan: traefik-k8s-lan.serveur.lan
+var_url_traefik_dmz: traefik-k8s-dmz.serveur.lan
+
+
+### port supplémentaire pour Unifi
+var_traefik_unifi_device_com: 8080
+var_traefik_unifi_stun: 3478
+var_traefik_unifi_ap_discovery: 10001
+var_traefik_unifi_discoverabl_l2: 1900

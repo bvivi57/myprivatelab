@@ -1,0 +1,78 @@
+---
+#Création des dossier de reception des configurations
+- name: Creates traefik configuration directory for admin user
+  become: yes
+  file:
+    path: "/home/{{ var_admin_user}}/{{ var_vip_kub_endpoint }}/traefik"
+    state: directory
+    owner: "{{ var_admin_user}}"
+    mode: 0770 
+    recurse: yes
+  when: "'TAG-COOLCORP-ROLE-MASTER' in tags or 'TAG-COOLCORP-NETWORK-WEB' in tags" 
+  tags: role_k8s.configure-traefik.directory
+
+#Création de la configuration traefik pour le LAN
+- name: "Set traefik lan configuration"
+  become: yes
+  template:
+    src: "traefik-config-lan.yaml.j2"
+    dest: "/home/{{ var_admin_user}}/{{ var_vip_kub_endpoint }}/traefik/traefik-config-lan.yaml"
+    owner: "{{ var_admin_user}}"  
+    mode: 0770   
+  when: "'TAG-COOLCORP-ROLE-MASTER' in tags"
+  tags: role_k8s.configure-traefik.lanconfig
+
+#Création du compte de service pour Traefik en LAN
+- name: "Set traefik service lan account"
+  become: yes
+  template:
+    src: "svc-traefik-lan.yaml.j2"
+    dest: "/home/{{ var_admin_user}}/{{ var_vip_kub_endpoint }}/traefik/svc-traefik-lan.yaml"
+    owner: "{{ var_admin_user}}"  
+    mode: 0770   
+  when: "'TAG-COOLCORP-ROLE-MASTER' in tags"
+  tags: role_k8s.configure-traefik.servicelanaccount
+
+#Création de la configuration pour le dashboard Traefik en LAN
+- name: "Set traefik dashboard lan configuration"
+  become: yes
+  template:
+    src: "traefik-lan-dashboard.yaml.j2"
+    dest: "/home/{{ var_admin_user}}/{{ var_vip_kub_endpoint }}/traefik/traefik-lan-dashboard.yaml"
+    owner: "{{ var_admin_user}}"  
+    mode: 0770   
+  when: "'TAG-COOLCORP-ROLE-MASTER' in tags"
+  tags: role_k8s.configure-traefik.lan-dashboard
+
+#Création de la configuration traefik pour la DMZ
+- name: "Set traefik dmz configuration"
+  become: yes
+  template:
+    src: "traefik-config-dmz.yaml.j2"
+    dest: "/home/{{ var_admin_user}}/{{ var_vip_kub_endpoint }}/traefik/traefik-config-dmz.yaml"
+    owner: "{{ var_admin_user}}"  
+    mode: 0770   
+  when: "'TAG-COOLCORP-ROLE-MASTER' in tags"
+  tags: role_k8s.configure-traefik.dmzconfig  
+
+#Création du compte de service pour Traefik en DMZ
+- name: "Set traefik service dmz account"
+  become: yes
+  template:
+    src: "svc-traefik-dmz.yaml.j2"
+    dest: "/home/{{ var_admin_user}}/{{ var_vip_kub_endpoint }}/traefik/svc-traefik-dmz.yaml"
+    owner: "{{ var_admin_user}}"  
+    mode: 0770   
+  when: "'TAG-COOLCORP-ROLE-MASTER' in tags"
+  tags: role_k8s.configure-traefik.dmz.servicelanaccount  
+
+#Création de la configuration pour le dashboard Traefik en DMZ
+- name: "Set traefik dashboard dmz configuration"
+  become: yes
+  template:
+    src: "traefik-dmz-dashboard.yaml.j2"
+    dest: "/home/{{ var_admin_user}}/{{ var_vip_kub_endpoint }}/traefik/traefik-dmz-dashboard.yaml"
+    owner: "{{ var_admin_user}}"  
+    mode: 0770   
+  when: "'TAG-COOLCORP-ROLE-MASTER' in tags"
+  tags: role_k8s.configure-traefik.dmz-dashboard  

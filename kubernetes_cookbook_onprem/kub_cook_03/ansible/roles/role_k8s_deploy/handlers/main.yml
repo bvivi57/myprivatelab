@@ -1,0 +1,12 @@
+---
+- name: "restart docker"
+  become: yes 
+  service:
+    name: docker
+    state: restarted
+
+- name: "restart haproxy"
+  become: yes 
+  service:
+    name: haproxy
+    state: restarted   

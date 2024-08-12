@@ -1,0 +1,14 @@
+[Match]
+Name=eth0
+
+[Network]
+Address={{ var_ip_address }}
+{% if 'TAG-COOLCORP-NETWORK-LAN' in tags %}
+Gateway={{ var_lan_gateway }}
+DNS={{ var_lan_dns }}
+{% else %}
+Gateway={{ var_web_gateway }}
+DNS={{ var_lan_dns }}
+{% endif %}
+NTP={{ var_ntp_server }}
+Domains={{ var_domain }}

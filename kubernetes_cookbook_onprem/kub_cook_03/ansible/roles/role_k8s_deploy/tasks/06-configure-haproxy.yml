@@ -1,0 +1,52 @@
+---
+#installation de HA proxy
+- name: Install haproxy
+  become: yes 
+  tdnf:
+    update_cache: yes
+    name: "haproxy"
+    state: present
+  when: "'TAG-COOLCORP-ROLE-HAPROXY' in tags"
+  tags: role_k8s_deploy.haproxy.install
+
+#Configuration HA proxy pour le LAN
+- name: "Set haproxy LAN configuration"
+  become: yes
+  template:
+    src: "haproxy_lan.cfg.j2"
+    dest: "/etc/haproxy/haproxy.cfg"
+  when: "'TAG-COOLCORP-ROLE-HAPROXY' in tags and  'TAG-COOLCORP-NETWORK-LAN' in tags"
+  tags: role_k8s_deploy.haproxy.haproxy-lan-config
+  notify:
+      - restart haproxy
+
+#Configuration HA proxy pour la DMZ
+- name: "Set haproxy DMZ configuration"
+  become: yes
+  template:
+    src: "haproxy_dmz.cfg.j2"
+    dest: "/etc/haproxy/haproxy.cfg"
+  when: "'TAG-COOLCORP-ROLE-HAPROXY' in tags and  'TAG-COOLCORP-NETWORK-WEB' in tags"
+  tags: role_k8s_deploy.haproxy.haproxy-dmz-config
+  notify:
+      - restart haproxy
+
+#Demarrer HA proxy
+- name: "Start HA proxy"
+  become: yes
+  systemd:
+    name: haproxy
+    state: started
+  when: "'TAG-COOLCORP-ROLE-HAPROXY' in tags"
+  tags: role_k8s_deploy.haproxy.haproxy-service
+
+#S'assurer que HA proxy soit actif au démarrage
+- name: "Enable proxy"
+  become: yes
+  systemd:
+    name: haproxy
+    enabled: true
+  when: "'TAG-COOLCORP-ROLE-HAPROXY' in tags"
+  tags: role_k8s_deploy.haproxy.haproxy-service
+
+

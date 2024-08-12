@@ -1,0 +1,130 @@
+---
+#Configuration pour Kubeadm
+- name: "Set kubeadm configuration"
+  become: yes
+  template:
+    src: "kubeadm.conf.j2"
+    dest: "/etc/kubernetes/kubeadm.conf"
+  when: "'TAG-COOLCORP-ROLE-MASTER' in tags"
+  tags: role_k8s_deploy.configure-k8s.kubeadm-config  
+
+#Création des repertoires de destination pour les configurations
+- name: Creates configuration directory for admin user
+  become: yes
+  file:
+    path: "/home/{{ var_admin_user}}/{{ var_vip_kub_endpoint }}"
+    state: directory
+    owner: "{{ var_admin_user}}"
+    mode: 0770
+  when: "'TAG-COOLCORP-ROLE-MASTER' in tags"  
+
+- name: Creates network configuration directory for admin user
+  become: yes
+  file:
+    path: "/home/{{ var_admin_user}}/{{ var_vip_kub_endpoint }}/network"
+    state: directory
+    owner: "{{ var_admin_user}}"
+    mode: 0770  
+  when: "'TAG-COOLCORP-ROLE-MASTER' in tags"   
+
+- name: Creates cloud configuration directory for admin user
+  become: yes
+  file:
+    path: "/home/{{ var_admin_user}}/{{ var_vip_kub_endpoint }}/cloud"
+    state: directory
+    owner: "{{ var_admin_user}}"
+    mode: 0770 
+  when: "'TAG-COOLCORP-ROLE-MASTER' in tags"    
+
+- name: Creates cloud cpi configuration directory for admin user
+  become: yes
+  file:
+    path: "/home/{{ var_admin_user}}/{{ var_vip_kub_endpoint }}/cloud/cpi"
+    state: directory
+    owner: "{{ var_admin_user}}"
+    mode: 0770 
+  when: "'TAG-COOLCORP-ROLE-MASTER' in tags"   
+  tags: role_k8s_deploy.configure-k8s.cpi
+
+
+- name: Creates cloud csi configuration directory for admin user
+  become: yes
+  file:
+    path: "/home/{{ var_admin_user}}/{{ var_vip_kub_endpoint }}/cloud/csi"
+    state: directory
+    owner: "{{ var_admin_user}}" 
+    mode: 0770 
+  when: "'TAG-COOLCORP-ROLE-MASTER' in tags"                   
+
+- name: Creates kube directory for adminuser
+  become: yes
+  file:
+    path: "/home/{{ var_admin_user}}/.kube"
+    state: directory
+    owner: "{{ var_admin_user}}"   
+    mode: 0770
+  when: "'TAG-COOLCORP-ROLE-MASTER' in tags"  
+
+#Configuration cilium
+- name: "Set cilium configuration"
+  become: yes
+  template:
+    src: "cilium-values.yaml.j2"
+    dest: "/home/{{ var_admin_user}}/{{ var_vip_kub_endpoint }}/network/cilium-values.yaml"
+    owner: "{{ var_admin_user}}"  
+    mode: 0770   
+  when: "'TAG-COOLCORP-ROLE-MASTER' in tags"
+  tags: role_k8s_deploy.configure-k8s.cilium
+
+#Récupération de la CLI de cilium
+- name: Download and extract cilium cli
+  become: yes 
+  ansible.builtin.unarchive:
+    src: "{{ var_cilium_cli }}"
+    dest: /usr/local/bin
+    remote_src: yes
+  when: "'TAG-COOLCORP-ROLE-MASTER' in tags"
+  tags: role_k8s_deploy.configure-k8s.cilium" 
+
+#Configuration du Cloud Provider Interface  (vSphere)
+- name: "Set vSphere CPI configuration"
+  become: yes
+  template:
+    src: "vsphere-cloud-controller-manager.yaml.j2"
+    dest: "/home/{{ var_admin_user}}/{{ var_vip_kub_endpoint }}/cloud/cpi/vsphere-cloud-controller-manager.yaml"
+    owner: "{{ var_admin_user}}"  
+    mode: 0770   
+  when: "'TAG-COOLCORP-ROLE-MASTER' in tags"
+  tags: role_k8s_deploy.configure-k8s.cpi
+
+#Configuration du Container Storage Interface (vSphere)
+- name: "Set namespace csi config"
+  become: yes
+  template:
+    src: "csi-namespace.yaml.j2"
+    dest: "/home/{{ var_admin_user}}/{{ var_vip_kub_endpoint }}/cloud/csi/namespace.yaml"
+    owner: "{{ var_admin_user}}"  
+    mode: 0770   
+  when: "'TAG-COOLCORP-ROLE-MASTER' in tags"
+  tags: role_k8s_deploy.configure-k8s.csi-namespace-config  
+
+- name: "Set csi config"
+  become: yes
+  template:
+    src: "csi-vsphere.conf.j2"
+    dest: "/home/{{ var_admin_user}}/{{ var_vip_kub_endpoint }}/cloud/csi/csi-vsphere.conf"
+    owner: "{{ var_admin_user}}"  
+    mode: 0770   
+  when: "'TAG-COOLCORP-ROLE-MASTER' in tags"
+  tags: role_k8s_deploy.configure-k8s.csi-config   
+
+- name: "Set csi yaml"
+  become: yes
+  template:
+    src: "vsphere-csi-driver.yaml.j2"
+    dest: "/home/{{ var_admin_user}}/{{ var_vip_kub_endpoint }}/cloud/csi/vsphere-csi-driver.yaml"
+    owner: "{{ var_admin_user}}"  
+    mode: 0770   
+  when: "'TAG-COOLCORP-ROLE-MASTER' in tags"
+  tags: role_k8s_deploy.configure-k8s.csi-config   
+

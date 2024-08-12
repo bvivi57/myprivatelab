@@ -1,0 +1,7 @@
+#Deploie le role "role_k8s_deploy" sur tous les serveurs appartenant au groupe "TAG_COOLCORP_APPS_K8S"
+---
+- name: Deploy K8S Cluster
+  hosts: TAG_APPS_K8S
+  roles: 
+    - role_k8s_deploy
+

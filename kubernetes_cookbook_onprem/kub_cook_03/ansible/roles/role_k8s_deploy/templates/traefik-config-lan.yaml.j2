@@ -1,0 +1,69 @@
+image:
+  name: traefik
+  tag: "{{ var_version_traefik }}"
+  pullPolicy: IfNotPresent
+deployment:
+  enabled: true
+  kind: DaemonSet
+  labels:
+    network: lan
+  podLabels:
+    network: lan
+providers:
+  kubernetesIngress:
+    labelSelector: network=lan
+  kubernetesCRD:
+    enabled: true
+    allowCrossNamespace: false
+    allowExternalNameServices: false
+    allowEmptyServices: false
+    namespaces:
+       - {{ var_namespace_traefik_prd_lan }}
+serviceAccount:
+  name: "{{ var_traefik_lan_service_account }}"
+logs:
+    level: ERROR
+hostNetwork: true
+ports:
+  web:
+    port: 80
+    ports.web.redirectTo.port: websecure
+  websecure:
+    port: 443
+  unifi-stun:
+    port: {{ var_traefik_unifi_stun }}
+    protocol: UDP
+    tls:
+      enabled: false
+  unifi-ap-di:
+    port: {{ var_traefik_unifi_ap_discovery }}
+    protocol: UDP
+    tls:
+      enabled: false
+  unifi-dev-co:
+    port: {{ var_traefik_unifi_device_com }}
+    protocol: TCP
+    tls:
+      enabled: false
+  unifi-dis-l:
+    port: {{ var_traefik_unifi_discoverabl_l2 }}
+    protocol: UDP
+    tls:
+      enabled: false 
+
+securityContext:
+  capabilities:
+    drop: [ALL]
+    add: [NET_BIND_SERVICE]
+  readOnlyRootFilesystem: true
+  runAsGroup: 0
+  runAsNonRoot: false
+  runAsUser: 0
+updateStrategy:
+  rollingUpdate:
+    maxSurge: 0
+    maxUnavailable: 1
+  type: RollingUpdate
+additionalArguments:
+  - "--providers.kubernetesingress.ingressclass=traefik-lan"
+  - "--serversTransport.insecureSkipVerify=true"

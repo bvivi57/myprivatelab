@@ -1,0 +1,121 @@
+---
+#Récupération des binaire containerd et décompression de ces dernier dans /usr
+- name: Download and extract containerd
+  become: yes 
+  ansible.builtin.unarchive:
+    src: "{{ var_containerd_binary }}"
+    dest: /usr
+    remote_src: yes
+  tags: role_k8s_deploy.containerd.containerd
+  when: "'TAG-COOLCORP-ROLE-MASTER' in tags or 'TAG-COOLCORP-ROLE-WORKER' in tags" 
+
+#Création du fichier de service pour gérer le démarrage et l'arret de containerd : utilisation du template containerd.service.j2
+- name: "Configure containerd service"
+  become: yes 
+  template:
+    src: containerd.service.j2
+    dest: "/usr/lib/systemd/system/containerd.service"
+  register: containerd_service_file
+  tags: role_k8s_deploy.containerd.contrainerd-service
+  when: "'TAG-COOLCORP-ROLE-MASTER' in tags or 'TAG-COOLCORP-ROLE-WORKER' in tags" 
+
+#forcer le refresh de la config systemd pour prendre en compte le fichier de service créé précedemment
+- name: container reread config
+  become: yes  
+  ansible.builtin.systemd:
+    daemon_reexec: yes
+  when: containerd_service_file is changed 
+
+#Activer et démarrer le service containerd  
+- name: enable containerd service
+  become: yes 
+  systemd:
+    name: containerd
+    state: started
+    enabled: True  
+  when: "'TAG-COOLCORP-ROLE-MASTER' in tags or 'TAG-COOLCORP-ROLE-WORKER' in tags"   
+
+#Ajouter le module br_netfilter au chargement de containerd
+- name: "configure br_netfilter module"
+  become: yes 
+  template:
+    src: containerd.conf.j2
+    dest: "/etc/modules-load.d/containerd.conf"
+  tags: role_k8s_deploy.containerd.conf-br_netfilter
+  when: "'TAG-COOLCORP-ROLE-MASTER' in tags or 'TAG-COOLCORP-ROLE-WORKER' in tags" 
+
+#S'assurer que le module br_netfiler soit chargé
+- name: Add the br_netfilter module
+  become: yes 
+  community.general.modprobe:
+    name: br_netfilter
+    state: present
+  tags: role_k8s_deploy.containerd.add-br_netfilter  
+  when: "'TAG-COOLCORP-ROLE-MASTER' in tags or 'TAG-COOLCORP-ROLE-WORKER' in tags" 
+
+#Tweak du kernel pour les besoins K8S 
+- name: "configure sysctl"
+  become: yes 
+  template:
+    src: 99-kubernetes-cri.conf.j2
+    dest: "/etc/sysctl.d/99-kubernetes-cri.conf"
+  register: sysctl_file  
+  tags: role_k8s_deploy.containerd.sysctl
+  when: "'TAG-COOLCORP-ROLE-MASTER' in tags or 'TAG-COOLCORP-ROLE-WORKER' in tags" 
+
+#Forcer le rechargement de la conf associé au kernel
+- name: read sysctlconf
+  become: yes 
+  shell:  sysctl --system
+  when: sysctl_file is changed 
+  tags: role_k8s_deploy.containerd.read-sysctl
+
+ #Generer la conf par default de containerd
+- name: "configure containerd"
+  become: yes 
+  ansible.builtin.shell:
+    cmd: containerd config default > /etc/containerd/config.toml
+  register: containerd_config_file
+  tags: srv_k8s.containerd.conf-containerd-config  
+  when: "'TAG-COOLCORP-ROLE-MASTER' in tags or 'TAG-COOLCORP-ROLE-WORKER' in tags" 
+
+ #Activer le support des crgroup dans la config containerd
+- name: "Activate cgroup"
+  become: yes
+  replace:
+    path: /etc/containerd/config.toml
+    regexp: 'SystemdCgroup\s*=\s*false'
+    replace: 'SystemdCgroup = true'
+  when: "'TAG-COOLCORP-ROLE-MASTER' in tags or 'TAG-COOLCORP-ROLE-WORKER' in tags"
+  tags: srv_k8s.containerd.conf-containerd-config         
+
+ #Redemarrer containerd
+- name: enable containerd service
+  become: yes 
+  systemd:
+    name: containerd
+    state: restarted 
+  when: containerd_config_file is changed   
+
+ #Activer les agents kubelet
+- name: enable kubelet service
+  become: yes 
+  systemd:
+    name: kubelet
+    state: started
+    enabled: True
+  when: "'TAG-COOLCORP-ROLE-MASTER' in tags or 'TAG-COOLCORP-ROLE-WORKER' in tags"     
+
+#configurer l'outil CLI pour piloter le container runtime
+- name: "configure crictl"
+  become: yes 
+  template:
+    src: crictl.yaml.j2
+    dest: "/etc/crictl.yaml" 
+  tags: role_k8s_deploy.containerd.crictl
+  when: "'TAG-COOLCORP-ROLE-MASTER' in tags or 'TAG-COOLCORP-ROLE-WORKER' in tags"         
+
+
+
+
+

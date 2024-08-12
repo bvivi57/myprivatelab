@@ -1,0 +1,10 @@
+[Global]
+cluster-id = "{{ var_kub_name }}"
+
+
+[VirtualCenter "{{ var_vcenter }}"]
+insecure-flag = "true"
+user = "{{ var_vcenter_user }}"
+password = "{{ var_vcenter_password }}"
+port = "443"
+datacenters = "{{ var_vcenter_datacenter }}"
