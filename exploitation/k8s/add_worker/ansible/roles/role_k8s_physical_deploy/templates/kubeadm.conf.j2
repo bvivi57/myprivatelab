@@ -1,0 +1,16 @@
+---
+apiVersion: kubeadm.k8s.io/{{ var_api_version }}
+kind: ClusterConfiguration
+kubernetesVersion: {{ var_kub_version }}
+networking:
+ podSubnet: "{{ var_pod_subnet }}"
+ serviceSubnet: "{{ var_service_subnet }}"
+controlPlaneEndpoint: "{{ var_vip_kub_endpoint }}:6443"
+clusterName: "{{ var_kub_name }}"
+controllerManager:
+  extraArgs:
+    cloud-provider: external
+apiServer:
+ certSANs:
+ - {{ var_vip_kub_vip }}
+ - {{ var_vip_kub_endpoint }} 

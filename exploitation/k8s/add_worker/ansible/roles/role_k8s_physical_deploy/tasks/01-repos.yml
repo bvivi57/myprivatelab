@@ -1,0 +1,16 @@
+---
+#extraction de la version majeure à partir de la variable var_kub_version. La valeur sera positionnée dans une nouvelle variable "var_kub_major_version"
+- name: Extract Major Version Kub
+  become: yes
+  set_fact:
+        var_kub_major_version: "v{{ var_kub_version.split('.')[0:2] | join('.') }}"
+  tags: role_k8s_deploy.repos.setversion        
+
+#Deploiement du fichier repos kubernetes.repo dans /etc/yum.repos.d/ via le template kubernetes.repo.j2"
+- name: "install kubernetes repo"
+  become: yes 
+  template:
+    src: kubernetes.repo.j2
+    dest: "/etc/yum.repos.d/kubernetes.repo"
+  tags: role_k8s_deploy.repos.deploy
+

@@ -1,0 +1,148 @@
+---
+# Activation de Firewalld et arrêt d'iptables
+- name: Enable and start firewalld
+  become: yes
+  service:
+    name: firewalld
+    state: started
+    enabled: yes
+
+# Ouverture du port SSH
+- name: Open SSH port
+  become: yes
+  firewalld:
+    port: 22/tcp
+    permanent: true
+    state: enabled
+  tags: role_k8s_deploy.firewalld_ssh
+
+# Autoriser ICMP
+- name: Allow ICMP
+  become: yes
+  firewalld:
+    icmp_block_inversion: yes
+    permanent: true
+    state: enabled
+  tags: role_k8s_deploy.firewalld_ping
+
+# Ouverture du port pour l'agent Kubelet
+- name: Open firewalld port for kubelet
+  become: yes
+  firewalld:
+    port: "{{ var_kubelet_port }}/tcp"
+    permanent: true
+    state: enabled
+  tags: role_k8s_deploy.firewalld_kubelet
+
+# Ouverture du port UDP pour VXLAN par Cilium
+- name: Open firewalld UDP vxlan port for cilium
+  become: yes
+  firewalld:
+    port: "{{ var_cilium_udp_vxlan_port }}/udp"
+    permanent: true
+    state: enabled
+  tags: role_k8s_deploy.firewalld_cilium_vxlan_udp
+
+# Ouverture du port TCP pour health checks Cilium
+- name: Open firewalld TCP health port for cilium
+  become: yes
+  firewalld:
+    port: "{{ var_cilium_tcp_healt_port }}/tcp"
+    permanent: true
+    state: enabled
+  tags: role_k8s_deploy.firewalld_cilium_health_tcp
+
+# Ouverture du port TCP additionnel pour Cilium
+- name: Open firewalld TCP observer port for cilium
+  become: yes
+  firewalld:
+    port: "{{ var_cilium_tcp_obser_port }}/tcp"
+    permanent: true
+    state: enabled
+  tags: role_k8s_deploy.firewalld_cilium_observer_tcp
+
+# Autres ports pour Cilium et Hubble
+- name: Open firewalld TCP relay port for cilium
+  become: yes
+  firewalld:
+    port: "{{ var_cilium_tcp_relay_port }}/tcp"
+    permanent: true
+    state: enabled
+  tags: role_k8s_deploy.firewalld_cilium_relay_tcp
+
+- name: Open firewalld TCP hubble-peer port for cilium
+  become: yes
+  firewalld:
+    port: "{{ var_cilium_tcp_hubblepeer_port }}/tcp"
+    permanent: true
+    state: enabled
+  tags: role_k8s_deploy.firewalld_hubblepeer_tcp
+
+# Ouverture du port de l'API Server Kubernetes
+- name: Open firewalld Kubernetes API port
+  become: yes
+  firewalld:
+    port: "{{ var_kube_api_port }}/tcp"
+    permanent: true
+    state: enabled
+  tags: role_k8s_deploy.firewalld_kube_api_port
+
+# Ouverture du port etcd pour control plane
+- name: Open firewalld etcd API port
+  become: yes
+  firewalld:
+    port: "{{ var_etcd_port }}/tcp"
+    permanent: true
+    state: enabled
+  when: inventory_hostname.startswith('prdk8sctp')
+  tags: role_k8s_deploy.firewalld_etcd_api_port
+
+- name: Open firewalld etcd member port
+  become: yes
+  firewalld:
+    port: "{{ var_etcd_member_port }}/tcp"
+    permanent: true
+    state: enabled
+  when: inventory_hostname.startswith('prdk8sctp')
+  tags: role_k8s_deploy.firewalld_etcd_member_port
+
+# Ouverture des ports HTTP et HTTPS
+- name: Open firewalld HTTP port (80)
+  become: yes
+  firewalld:
+    port: 80/tcp
+    permanent: true
+    state: enabled
+  tags: role_k8s_deploy.firewalld_http
+
+- name: Open firewalld HTTPS port (443)
+  become: yes
+  firewalld:
+    port: 443/tcp
+    permanent: true
+    state: enabled
+  tags: role_k8s_deploy.firewalld_https
+
+# Ouverture des ports de service node
+- name: Open node service port
+  become: yes
+  firewalld:
+    port: "{{ var_node_service_port }}/tcp"
+    permanent: true
+    state: enabled
+  when: inventory_hostname.startswith('prdk8snod')
+  tags: role_k8s_deploy.firewalld_nodeservice
+
+# Rechargement de Firewalld pour appliquer les règles
+- name: Restart firewalld to apply all changes
+  become: yes
+  systemd:
+    name: firewalld
+    state: restarted
+  tags: role_k8s_deploy.firewalld_reload
+
+# Redémarrage de la machine si nécessaire
+- name: Unconditionally reboot the machine with all defaults
+  become: yes
+  reboot:
+  tags: role_k8s_deploy.prerequis.reboot
