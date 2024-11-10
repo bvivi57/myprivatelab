@@ -1,0 +1,42 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy-openwebui-default
+  namespace: prd-mygpt-lan
+  labels:
+    environment: prd
+    network: lan
+    application: mygpt
+    tier: openwebui
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      environment: prd
+      network: lan
+      application: mygpt
+      tier: openwebui
+  template:
+    metadata:
+      labels:
+        environment: prd
+        network: lan
+        application: mygpt
+        tier: openwebui
+    spec:
+      containers:
+        - name: open-webui
+          image: ghcr.io/open-webui/open-webui:main
+          ports:
+            - containerPort: 8080
+          volumeMounts:
+            - name: pv-openwebui-default
+              mountPath: "/app/backend/data"
+          env:
+            - name: OLLAMA_BASE_URL
+              value: "http://svc-ollama-default:11434"    
+      volumes:
+        - name: pv-openwebui-default
+          persistentVolumeClaim:
+            claimName: pvc-openwebui-default

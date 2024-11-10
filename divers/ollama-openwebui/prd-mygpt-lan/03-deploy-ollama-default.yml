@@ -1,0 +1,45 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy-ollama-default
+  namespace: prd-mygpt-lan
+  labels:
+    environment: prd
+    network: lan
+    application: mygpt
+    tier: ollama
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      environment: prd
+      network: lan
+      application: mygpt
+      tier: ollama
+  template:
+    metadata:
+      labels:
+        environment: prd
+        network: lan
+        application: mygpt
+        tier: ollama
+    spec:
+      nodeSelector:
+        type: physical  # Associe le pod aux nœuds ayant le label `type=physical` 
+      tolerations:
+        - key: "node-role.kubernetes.io/worker-lan-physical"
+          operator: "Exists"
+          effect: "NoSchedule"  
+      containers:
+        - name: ollama
+          image: ollama/ollama:0.4.0-rc6
+          ports:
+            - containerPort: 11434
+          volumeMounts:
+            - name: pv-ollama-default
+              mountPath: "/root"
+      volumes:
+        - name: pv-ollama-default
+          persistentVolumeClaim:
+            claimName: pvc-ollama-default

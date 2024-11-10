@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-ollama-default
+  namespace: prd-mygpt-lan
+  labels:
+    environment: prd
+    network: lan
+    application: mygpt
+    tier: ollama
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: sc-local-storage
+  resources:
+    requests:
+      storage: 250Gi
+
+
+

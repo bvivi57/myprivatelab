@@ -1,0 +1,22 @@
+---
+  kind: Service
+  apiVersion: v1
+  metadata:
+    name: svc-openwebui-default
+    namespace: prd-mygpt-lan
+    labels:
+      environment: prd
+      network: lan
+      application: mygpt
+      tier: openwebui
+  spec:
+    ports:
+      - name: openwebui
+        port: 8080
+        protocol: TCP
+        targetPort: 8080
+    selector:
+      environment: prd
+      network: lan
+      application: mygpt
+      tier: openwebui

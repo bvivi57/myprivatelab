@@ -1,0 +1,24 @@
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  annotations:
+    pv.kubernetes.io/provisioned-by: nfs.csi.k8s.io
+  name: pv-openwebui-default
+  labels:
+      environment: prd
+      network: lan
+      application: mygpt
+      tier: openwebui
+spec:
+  capacity:
+    storage: 30Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  csi:
+    driver: nfs.csi.k8s.io
+    volumeHandle: /Volume1/nfsshare/kub.coolcorp.priv/namespaces/prd-mygpt-lan/openwebui
+    volumeAttributes:
+      server: 192.168.10.152
+      share: /Volume1/nfsshare/kub.coolcorp.priv/namespaces/prd-mygpt-lan/openwebui
