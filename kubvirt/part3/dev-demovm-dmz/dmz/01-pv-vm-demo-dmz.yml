@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-vm-demo-dmz
+  labels:
+    environment: dev
+    network: dmz
+    application: kubevirt
+spec:
+  capacity:
+    storage: 30Gi 
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: sc-local-storage-prddtsnme001
+  local:
+    path: /mnt/datastores/prddtsnme001/localpv/dev-demovm-dmz/vm-demo-dmz
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+                - prdk8sctp001
+

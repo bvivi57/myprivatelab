@@ -1,0 +1,77 @@
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  name: vm-demo-web
+  namespace: dev-demovm-dmz
+  labels:
+    network: web
+    application: demo
+    os: linux
+    environnement: dev
+spec:
+  runStrategy: Always
+  template:
+    spec:
+      domain:
+        cpu:
+          cores: 1
+        resources:
+          requests:
+            memory: 1Gi
+        devices:
+          # On définit ici les disques utilisés par la VM
+          disks:
+            # Disque de l'image du système
+            - name: containerdisk
+              disk:
+                bus: virtio
+            # Disque cloud-init pour injecter la configuration initiale
+            - name: cloudinitdisk
+              disk:
+                bus: virtio
+          # Interfaces réseau existantes
+          interfaces:
+            # Interface connectée via Multus au VLAN (ici vlan LAN)
+            - name: lan
+              model: virtio
+              binding:
+               name: macvtap 
+      networks:
+        # Réseau supplémentaire via Multus (NAD existant)
+        - name: lan
+          multus:
+            networkName: inf-kubevirt/nad-dmz-web
+      volumes:
+        # Volume contenant l'image du système
+        - name: containerdisk
+          containerDisk:
+            image: quay.io/containerdisks/centos:8.4
+        # Volume cloud-init contenant la configuration initiale
+        - name: cloudinitdisk
+          cloudInitNoCloud:
+            userData: |
+              #cloud-config
+              hostname: vm-demo-lan
+              users:
+                - name: bvivi57
+                  sudo: ALL=(ALL) NOPASSWD:ALL
+                  shell: /bin/bash
+              chpasswd:
+                list: |
+                  bvivi57:defaultpassword
+                expire: False
+              ssh_pwauth: True
+
+              # Configuration réseau cloud-init (statique sur eth0)
+              network:
+                version: 1
+                config:
+                  - type: physical
+                    name: eth0
+                    subnets:
+                      - type: static
+                        address: 192.168.5.188/24
+                        gateway: 192.168.5.253
+                        dns_nameservers:
+                          - 192.168.10.30
+                          - 8.8.8.8

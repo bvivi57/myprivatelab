@@ -1,0 +1,58 @@
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  name: vm-demo-dmz
+  namespace: dev-demovm-dmz
+  labels:
+    network: dmz
+    application: demo
+    os: linux
+    environnement: dev
+spec:
+  runStrategy: Always
+  template:
+    spec:
+      domain:
+        firmware:
+          bootloader:
+            efi:
+              secureBoot: false
+        cpu:
+          cores: 1
+        resources:
+          requests:
+            memory: 1Gi
+        devices:
+          # On définit ici les disques utilisés par la VM
+          disks:
+            # CDROM
+            - name: pv-iso-rocky-linux-9-5
+              cdrom:
+                bus: sata
+                readonly: true
+              bootOrder: 2  
+            # Disque du systeme
+            - name: pv-vm-demo-dmz
+              disk:
+                bus: virtio
+              bootOrder: 1       
+          # Interfaces réseau existantes
+          interfaces:
+            # Interface connectée via Multus au VLAN (ici vlan LAN)
+            - name: eth0
+              model: virtio
+              binding:
+               name: macvtap 
+      networks:
+        # Réseau supplémentaire via Multus (NAD existant)
+        - name: eth0
+          multus:
+            networkName: inf-kubevirt/nad-dmz-first
+      volumes:
+        # Volume local 
+        - name: pv-iso-rocky-linux-9-5
+          persistentVolumeClaim:
+            claimName: dv-iso-rocky-linux-9-5
+        - name: pv-vm-demo-dmz
+          persistentVolumeClaim:
+            claimName: pvc-vm-demo-dmz            

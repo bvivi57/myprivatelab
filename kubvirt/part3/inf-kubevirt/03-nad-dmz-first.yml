@@ -1,0 +1,15 @@
+---
+apiVersion: k8s.cni.cncf.io/v1
+kind: NetworkAttachmentDefinition
+metadata:
+  name: nad-dmz-first
+  namespace: inf-kubevirt
+  annotations:
+      k8s.v1.cni.cncf.io/resourceName: macvtap.network.kubevirt.io/enp13s0f3   
+spec:
+  config: '{
+    "cniVersion": "0.3.1",
+    "name": "enp13s0f3",
+    "type": "macvtap",
+    "mode": "bridge"
+  }'

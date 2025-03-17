@@ -1,0 +1,64 @@
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  name: vm-demo-lan
+  namespace: dev-demovm-lan
+  labels:
+    network: lan
+    application: demo
+    os: linux
+    environnement: dev
+spec:
+  runStrategy: Always
+  template:
+    spec:
+      domain:
+        cpu:
+          cores: 1
+        resources:
+          requests:
+            memory: 1Gi
+        devices:
+          # On définit ici les disques utilisés par la VM
+          disks:
+            # Disque de l'image du système
+            - name: containerdisk
+              disk:
+                bus: virtio
+            # Disque cloud-init pour injecter la configuration initiale
+            - name: cloudinitdisk
+              disk:
+                bus: virtio
+          # Interfaces réseau existantes
+          interfaces:
+            # Interface connectée via Multus au VLAN (ici vlan LAN)
+            - name: lan
+              model: virtio
+              binding:
+               name: macvtap 
+      networks:
+        # Réseau 
+        #L'interface LAN
+        - name: lan
+          multus:
+            networkName: inf-kubevirt/nad-lan-default
+      volumes:
+        # Volume contenant l'image du système
+        - name: containerdisk
+          containerDisk:
+            image: quay.io/containerdisks/centos:8.4
+        # Volume cloud-init contenant la configuration initiale
+        - name: cloudinitdisk
+          cloudInitNoCloud:
+            userData: |
+              #cloud-config
+              hostname: vm-demo-lan
+              users:
+                - name: bvivi57
+                  sudo: ALL=(ALL) NOPASSWD:ALL
+                  shell: /bin/bash
+              chpasswd:
+                list: |
+                  bvivi57:defaultpassword
+                expire: False
+              ssh_pwauth: True

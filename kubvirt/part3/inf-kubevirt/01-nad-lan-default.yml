@@ -1,0 +1,16 @@
+---
+  apiVersion: k8s.cni.cncf.io/v1
+  kind: NetworkAttachmentDefinition
+  metadata:
+    name: nad-lan-default
+    annotations:
+      k8s.v1.cni.cncf.io/resourceName: macvtap.network.kubevirt.io/enp8s0
+    namespace: inf-kubevirt
+  spec:
+    config: '{
+      "cniVersion": "0.3.1",
+      "name": "enp8s0",
+      "type": "macvtap",
+      "mtu": 1500
+    }'
+  
