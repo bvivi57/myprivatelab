@@ -1,0 +1,54 @@
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ing-openwebui-default
+  namespace: prd-mygptgpu-lan
+  labels:
+    environment: prd
+    network: lan
+    application: mygpt
+    tier: openwebui
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
+    ingressClassName: traefik-lan
+    traefik.ingress.kubernetes.io/router.tls: "true"
+spec:
+  ingressClassName: traefik-lan
+  tls:
+  - hosts:
+    - mygptgpu.coolcorp.priv
+    secretName: sec-openwebui-cert
+  rules:
+  - host: mygptgpu.coolcorp.priv
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: svc-openwebui-default
+            port:
+              number: 8080
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: cert-openwebui-default
+  namespace: prd-mygptgpu-lan
+  labels:
+      environment: prd
+      network: lan
+      application: mygpt
+      tier: openwebui
+spec:
+  dnsNames:
+    - mygptgpu.coolcorp.priv
+  commonName: mygptgpu.coolcorp.priv
+  secretName: sec-openwebui-cert
+  privateKey:
+    algorithm: RSA
+    size: 4096
+  issuerRef:
+    name: clusterissuer-acme2certifier 
+    kind: ClusterIssuer     

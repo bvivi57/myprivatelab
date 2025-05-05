@@ -1,0 +1,19 @@
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-ollama-oasis-security-code-check
+  namespace: prd-mygptgpu-lan
+  labels:
+      environment: prd
+      network: lan
+      application: ollama
+      tier: oasis
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 30Gi
+  volumeName: pv-ollama-oasis-security-code-check
+  storageClassName: ""

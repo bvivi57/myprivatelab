@@ -1,0 +1,54 @@
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ing-ollama-oasis
+  namespace: prd-mygptgpu-lan
+  labels:
+    environment: prd
+    network: lan
+    application: mygpt
+    tier: oasis
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
+    ingressClassName: traefik-lan
+    traefik.ingress.kubernetes.io/router.tls: "true"
+spec:
+  ingressClassName: traefik-lan
+  tls:
+  - hosts:
+    - oasis.coolcorp.priv
+    secretName: sec-oasis-cert
+  rules:
+  - host: oasis.coolcorp.priv
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: svc-ollama-default
+            port:
+              number: 8080
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: cert-oasis-default
+  namespace: prd-mygptgpu-lan
+  labels:
+      environment: prd
+      network: lan
+      application: mygpt
+      tier: oasis
+spec:
+  dnsNames:
+    - oasis.coolcorp.priv
+  commonName: oasis.coolcorp.priv
+  secretName: sec-oasis-cert
+  privateKey:
+    algorithm: RSA
+    size: 4096
+  issuerRef:
+    name: clusterissuer-acme2certifier 
+    kind: ClusterIssuer     

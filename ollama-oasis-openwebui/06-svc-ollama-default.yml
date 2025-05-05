@@ -1,0 +1,26 @@
+---
+  kind: Service
+  apiVersion: v1
+  metadata:
+    name: svc-ollama-default
+    namespace: prd-mygptgpu-lan
+    labels:
+      environment: prd
+      network: lan
+      application: mygpt
+      tier: ollama
+  spec:
+    ports:
+      - name: ollama
+        port: 11434
+        protocol: TCP
+        targetPort: 11434
+      - name: oasis
+        port: 8080
+        protocol: TCP
+        targetPort: 8080 
+    selector:
+      environment: prd
+      network: lan
+      application: mygpt
+      tier: ollama

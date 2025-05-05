@@ -1,0 +1,58 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy-ollama-default
+  namespace: prd-mygptgpu-lan
+  labels:
+    environment: prd
+    network: lan
+    application: mygpt
+    tier: ollama
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      environment: prd
+      network: lan
+      application: mygpt
+      tier: ollama
+  template:
+    metadata:
+      labels:
+        environment: prd
+        network: lan
+        application: mygpt
+        tier: ollama
+    spec: 
+      tolerations:
+        - key: "node-role.kubernetes.io/control-plane"
+          operator: "Exists"
+          effect: "NoSchedule"  
+      containers:
+        - name: ollama
+          image: ollama/ollama:0.6.5
+          resources:
+           limits:
+            nvidia.com/gpu: 1
+          ports:
+            - containerPort: 11434
+          volumeMounts:
+            - name: pv-ollama-default
+              mountPath: "/root"
+        - name: oasis
+          image: registry.gitlab.com/apps.coolcorp.priv/oasis:oasis-dck-8.0 
+          ports:
+            - containerPort: 8080
+          volumeMounts:
+            - name: pv-jenkins-pip-security-code-check
+              mountPath: "/nfs" 
+      imagePullSecrets: 
+          - name: sec-mygptgpu-registry       
+      volumes:
+        - name: pv-ollama-default
+          persistentVolumeClaim:
+            claimName: pvc-ollama-default
+        - name: pv-jenkins-pip-security-code-check
+          persistentVolumeClaim:
+            claimName: pvc-ollama-oasis-security-code-check

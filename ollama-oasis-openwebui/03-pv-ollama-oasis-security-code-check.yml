@@ -1,0 +1,24 @@
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  annotations:
+    pv.kubernetes.io/provisioned-by: nfs.csi.k8s.io
+  name: pv-ollama-oasis-security-code-check
+  labels:
+      environment: prd
+      network: lan
+      application: ollama
+      tier: oasis
+spec:
+  capacity:
+    storage: 30Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  csi:
+    driver: nfs.csi.k8s.io
+    volumeHandle: /Volume1/nfsshare/rubikub.coolcorp.priv/namespaces/prd-jenkins-lan/pipelines/security-code-check/oasis
+    volumeAttributes:
+      server: 192.168.10.152
+      share: /Volume1/nfsshare/rubikub.coolcorp.priv/namespaces/prd-jenkins-lan/pipelines/security-code-check
