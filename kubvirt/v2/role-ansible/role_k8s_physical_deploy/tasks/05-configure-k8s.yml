@@ -1,0 +1,62 @@
+---
+#Configuration pour Kubeadm
+- name: "Set kubeadm configuration"
+  become: yes
+  template:
+    src: "kubeadm.conf.j2"
+    dest: "/etc/kubernetes/kubeadm.conf"
+  when: inventory_hostname.startswith('prdk8sctp')
+  tags: role_k8s_deploy.configure-k8s.kubeadm-config  
+
+#Création des repertoires de destination pour les configurations
+- name: Creates configuration directory for admin user
+  become: yes
+  file:
+    path: "/home/{{ var_admin_user}}/{{ var_vip_kub_endpoint }}"
+    state: directory
+    owner: "{{ var_admin_user}}"
+    mode: 0770
+  when: inventory_hostname.startswith('prdk8sctp')  
+
+- name: Creates network configuration directory for admin user
+  become: yes
+  file:
+    path: "/home/{{ var_admin_user}}/{{ var_vip_kub_endpoint }}/network"
+    state: directory
+    owner: "{{ var_admin_user}}"
+    mode: 0770  
+  when: inventory_hostname.startswith('prdk8sctp')   
+
+
+- name: Creates kube directory for adminuser
+  become: yes
+  file:
+    path: "/home/{{ var_admin_user}}/.kube"
+    state: directory
+    owner: "{{ var_admin_user}}"   
+    mode: 0770
+  when: inventory_hostname.startswith('prdk8sctp')
+
+#Configuration cilium
+- name: "Set cilium configuration"
+  become: yes
+  template:
+    src: "cilium-values.yaml.j2"
+    dest: "/home/{{ var_admin_user}}/{{ var_vip_kub_endpoint }}/network/cilium-values.yaml"
+    owner: "{{ var_admin_user}}"  
+    mode: 0770   
+  when: inventory_hostname.startswith('prdk8sctp')
+  tags: role_k8s_deploy.configure-k8s.cilium
+
+#Récupération de la CLI de cilium
+- name: Download and extract cilium cli
+  become: yes 
+  ansible.builtin.unarchive:
+    src: "{{ var_cilium_cli }}"
+    dest: /usr/local/bin
+    remote_src: yes
+  when: inventory_hostname.startswith('prdk8sctp')
+  tags: role_k8s_deploy.configure-k8s.cilium" 
+
+
+

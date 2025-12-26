@@ -1,0 +1,90 @@
+image:
+  tag: "{{ var_version_traefik }}"
+  pullPolicy: IfNotPresent
+
+deployment:
+  enabled: true
+  kind: DaemonSet
+  labels:
+    network: lan
+  podLabels:
+    network: lan
+
+gatewayClass:
+  enabled: true
+  name: traefik-lan
+  labels:
+    network: lan
+
+gateway:
+  enabled: false
+
+providers:
+  kubernetesGateway:
+    enabled: true
+    labelSelector: "network=lan"
+  kubernetesIngress:
+    labelSelector: "network=lan"
+    allowExternalNameServices: true
+  kubernetesCRD:
+    enabled: true
+    allowCrossNamespace: false
+    allowExternalNameServices: true
+    allowEmptyServices: false
+    namespaces:
+      - {{ var_namespace_traefik_prd_lan }}
+{% for ns in (var_namespaces_on_traefik_crd | default([])) %}
+      - {{ ns }}
+{% endfor %}
+
+serviceAccount:
+  name: "{{ var_traefik_lan_service_account }}"
+
+logs:
+  general:
+    level: ERROR
+
+hostNetwork: true
+
+
+ports:
+  web:
+    port: 80
+    expose:
+      default: true
+    redirections:
+      entryPoint:
+        to: websecure
+        scheme: https
+        permanent: true
+  websecure:
+    port: 443
+    expose:
+      default: true
+    proxyProtocol:
+      trustedIPs:
+        - "{{ var_vip_kub_vip }}"
+    forwardedHeaders:
+      trustedIPs:
+        - "{{ var_vip_kub_vip }}"
+    tls:
+      enabled: true
+
+securityContext:
+  capabilities:
+    drop: [ALL]
+    add: [NET_BIND_SERVICE]
+  readOnlyRootFilesystem: true
+  runAsGroup: 0
+  runAsNonRoot: false
+  runAsUser: 0
+
+updateStrategy:
+  rollingUpdate:
+    maxSurge: 0
+    maxUnavailable: 1
+  type: RollingUpdate
+
+additionalArguments:
+  - "--providers.kubernetesingress.ingressclass=traefik-lan"
+  - "--serversTransport.insecureSkipVerify=true"

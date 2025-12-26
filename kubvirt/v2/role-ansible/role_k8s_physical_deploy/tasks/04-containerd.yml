@@ -1,0 +1,114 @@
+---
+- name: Download and extract containerd
+  become: yes 
+  ansible.builtin.unarchive:
+    src: "{{ var_containerd_binary }}"
+    dest: /usr
+    remote_src: yes
+  tags: role_k8s_deploy.containerd.containerd
+  when: "'prdk8snlb' not in inventory_hostname"
+
+- name: "Configure containerd service unit"
+  become: yes 
+  template:
+    src: containerd.service.j2
+    dest: "/usr/lib/systemd/system/containerd.service"
+  register: containerd_service_file
+  tags: role_k8s_deploy.containerd.contrainerd-service
+  when: "'prdk8snlb' not in inventory_hostname" 
+
+- name: Reload systemd daemon
+  become: yes  
+  ansible.builtin.systemd:
+    daemon_reexec: yes
+  when: containerd_service_file is changed 
+
+
+- name: "Configure sysctl for Kubernetes CRI"
+  become: yes 
+  template:
+    src: 99-kubernetes.conf.j2
+    dest: "/etc/sysctl.d/99-kubernetes.conf"
+  register: sysctl_file  
+  tags: role_k8s_deploy.containerd.sysctl
+  when: "'prdk8snlb' not in inventory_hostname" 
+
+- name: Apply sysctl params
+  become: yes 
+  shell: sysctl --system
+  when: sysctl_file is changed 
+  tags: role_k8s_deploy.containerd.read-sysctl
+
+- name: Create /etc/containerd/ directory
+  become: yes
+  file:
+    path: /etc/containerd/
+    state: directory
+    mode: '0755'
+  tags: role_k8s_deploy.containerd.conf-directory
+
+- name: "Generate default containerd config"
+  become: yes 
+  ansible.builtin.shell:
+    cmd: containerd config default > /etc/containerd/config.toml
+  args:
+    creates: /etc/containerd/config.toml
+  register: containerd_config_created
+  tags: srv_k8s.containerd.conf-containerd-config  
+  when: "'prdk8snlb' not in inventory_hostname" 
+
+- name: "Enforce SystemdCgroup = true"
+  become: yes
+  replace:
+    path: /etc/containerd/config.toml
+    regexp: 'SystemdCgroup\s*=\s*false'
+    replace: 'SystemdCgroup = true'
+  register: cgroup_config_changed
+  when: "'prdk8snlb' not in inventory_hostname"
+  tags: srv_k8s.containerd.conf-containerd-config         
+
+- name: "Enforce crun binary in config.toml"
+  become: yes
+  replace:
+    path: /etc/containerd/config.toml
+    regexp: "BinaryName = ''"
+    replace: 'BinaryName = "/usr/bin/crun"'
+  register: runtime_config_changed
+  when: "'prdk8snlb' not in inventory_hostname"
+
+
+- name: Enable containerd service
+  become: yes 
+  systemd:
+    name: containerd
+    enabled: True
+    state: started
+  when: "'prdk8snlb' not in inventory_hostname"
+
+
+- name: Restart containerd if config changed
+  become: yes 
+  systemd:
+    name: containerd
+    state: restarted 
+  when: 
+    - "'prdk8snlb' not in inventory_hostname"
+    - containerd_config_created.changed or cgroup_config_changed.changed or runtime_config_changed.changed
+
+
+- name: Enable and start kubelet service
+  become: yes 
+  systemd:
+    name: kubelet
+    state: started
+    enabled: True
+  when: "'prdk8snlb' not in inventory_hostname"      
+
+
+- name: "Configure crictl.yaml"
+  become: yes 
+  template:
+    src: crictl.yaml.j2
+    dest: "/etc/crictl.yaml" 
+  tags: role_k8s_deploy.containerd.crictl
+  when: "'prdk8snlb' not in inventory_hostname"

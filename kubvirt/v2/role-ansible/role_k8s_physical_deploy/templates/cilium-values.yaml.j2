@@ -1,0 +1,32 @@
+kubeProxyReplacement: true
+k8sServiceHost: {{ var_vip_kub_vip }}
+k8sServicePort: 6443
+cni:
+  # Empêche Cilium de prendre le contrôle total du dossier /etc/cni/net.d
+  # Cela permet à Multus de rester le "maître" et d'appeler Cilium comme plugin délégué
+  exclusive: false
+ipam:
+  mode: "cluster-pool"
+  operator:
+    clusterPoolIPv4PodCIDRList:
+      - "{{ var_cilium_subnet }}"
+# Configuration Hubble (Visualisation)
+hubble:
+  relay:
+    enabled: true
+  ui:
+    enabled: true
+    frontend:
+      server:
+        ipv6:
+          enabled: false
+  tls:
+    auto:
+      enabled: true
+      method: helm
+      certValidityDuration: 1095
+
+cgroup:
+  autoMount:
+    enabled: false
+  hostRoot: /sys/fs/cgroup

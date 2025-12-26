@@ -1,0 +1,121 @@
+---
+#Désactivation de la SWARP sur tous les serveurs
+- name: Disable swap (if configured).
+  become: yes 
+  command: swapoff -a
+  tags: role_k8s_deploy.prerequis.swap
+
+- name: Permanently disable swap in /etc/fstab
+  become: yes 
+  replace:
+        path: /etc/fstab
+        regexp: '^([^#].* swap .*)$'
+        replace: '# \1'
+
+
+#installation des packages sur les control plan (liste des paquets défini dans "main.yml" du dossier "defaults")
+- name: Install basic packages for master
+  become: yes 
+  dnf:
+    update_cache: yes
+    name: "{{ var_k8s_packages_master }}"
+    state: present
+  when: inventory_hostname.startswith('prdk8sctp')
+  tags: role_k8s_deploy.prerequis.packages_master
+
+#installation des packages sur les workers (liste des paquets défini dans "main.yml" du dossier "defaults")  
+- name: Install basic packages for worker
+  become: yes 
+  dnf:
+    update_cache: yes
+    name: "{{ var_k8s_packages_worker }}"
+    state: present
+  when: inventory_hostname.startswith('prdk8snod')
+  tags: role_k8s_deploy.prerequis.packages_worker
+
+#suppression des paquets inutiles ou conflictuels (liste des paquets défini dans "main.yml" du dossier "defaults")  
+- name: remove non necessary packages
+  become: yes 
+  dnf:
+    update_cache: yes
+    name: "{{ var_remove_packages }}"
+    state: absent  
+  tags: role_k8s_deploy.prerequis.remove-package   
+
+#copie du binaire helm depuis le dossier "files" vers /usr/local/bin/ mais uniquement sur les control plan
+- name: install helm
+  become: yes
+  copy:
+    src: helm
+    dest: /usr/local/bin/helm
+    owner: "{{ var_admin_user}}"
+    mode: u=rwx,g=rx,o=r    
+  tags: role_k8s_deploy.prerequis.helm
+
+#configurer les variables d'environnement pour kubelet
+- name: "configure kubelet env"
+  become: yes 
+  template:
+    src: kubeadm-flags.env.j2
+    dest: "/var/lib/kubelet/kubeadm-flags.env" 
+  tags: role_k8s_deploy.containerd.kubelet-env
+  when: "'prdk8snlb' not in inventory_hostname"       
+
+- name: "Mettre à jour /etc/security/limits.conf"
+  become: yes 
+  lineinfile:
+        path: /etc/security/limits.conf
+        line: "{{ item }}"
+        state: present
+  loop:
+     - '* soft nofile 65536'
+     - '* hard nofile 65536'
+  tags: role_k8s_deploy.prerequis.limits 
+
+#- name: Mettre à jour /etc/systemd/system.conf
+#  become: yes 
+#  lineinfile:
+#        path: /etc/systemd/system.conf
+#        regexp: '^#?DefaultLimitNOFILE='
+#        line: 'DefaultLimitNOFILE=65536'
+#        state: present
+#  tags: role_k8s_deploy.prerequis.limits       
+
+#- name: Mettre à jour /etc/systemd/user.conf
+#  become: yes 
+#  lineinfile:
+#        path: /etc/systemd/user.conf
+#        regexp: '^#?DefaultLimitNOFILE='
+#        line: 'DefaultLimitNOFILE=65536'
+#        state: present  
+#  tags: role_k8s_deploy.prerequis.limits              
+
+- name: Ensure kernel modules are loaded
+  become: yes
+  community.general.modprobe:
+    name: "{{ item }}"
+    state: present
+  loop: "{{ var_module_packages }}"
+  tags: role_k8s_deploy.containerd.add-kernel-modules
+  when: "'prdk8snlb' not in inventory_hostname"
+
+- name: Persist kernel modules across reboots
+  become: yes
+  copy:
+    dest: /etc/modules-load.d/k8s.conf
+    content: |
+      {% for m in var_module_packages %}
+      {{ m }}
+      {% endfor %}
+    owner: root
+    group: root
+    mode: '0644'
+  when: "'prdk8snlb' not in inventory_hostname"
+  tags: role_k8s_deploy.containerd.add-kernel-modules
+
+#reboot des machines
+- name: Unconditionally reboot the machine with all defaults
+  become: yes
+  reboot:
+  tags: role_k8s_deploy.prerequis.reboot
+

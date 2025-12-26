@@ -1,0 +1,44 @@
+---
+# PARTIE 1 : Configuration du noeud initial (Master)
+apiVersion: kubeadm.k8s.io/{{ var_api_version | default('v1beta4') }}
+kind: InitConfiguration
+localAPIEndpoint:
+  advertiseAddress: "{{ var_vip_kub_vip }}"
+  bindPort: 6443
+nodeRegistration:
+  criSocket: "unix:///var/run/containerd/containerd.sock"
+  # CORRECTION ICI : Format liste pour v1beta4
+  kubeletExtraArgs:
+  - name: "node-ip"
+    value: "{{ var_vip_kub_vip }}"
+
+---
+# PARTIE 2 : Configuration du Cluster
+apiVersion: kubeadm.k8s.io/{{ var_api_version | default('v1beta4') }}
+kind: ClusterConfiguration
+kubernetesVersion: "{{ var_kub_version }}"
+clusterName: "{{ var_kub_name }}"
+controlPlaneEndpoint: "{{ var_vip_kub_endpoint }}:6443"
+networking:
+  dnsDomain: cluster.local
+  podSubnet: "{{ var_pod_subnet }}"
+  serviceSubnet: "{{ var_service_subnet }}"
+apiServer:
+  certSANs:
+  - "{{ var_vip_kub_vip }}"
+  - "{{ var_vip_kub_endpoint }}"
+  - "127.0.0.1"
+  - "localhost"
+# Note : Si tu devais remettre des extraArgs ici, ils devraient aussi être sous forme de liste
+scheduler: {}
+controllerManager: {}
+
+---
+# PARTIE 3 : Configuration du Kubelet
+apiVersion: kubelet.config.k8s.io/v1beta1
+kind: KubeletConfiguration
+cgroupDriver: systemd
+failSwapOn: true
+authentication:
+  anonymous:
+    enabled: false

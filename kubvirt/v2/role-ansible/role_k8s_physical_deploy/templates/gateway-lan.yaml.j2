@@ -1,0 +1,36 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: traefik-gateway-lan
+  namespace: inf-traefik-lan
+  labels:
+    network: lan
+spec:
+  gatewayClassName: traefik-lan
+  listeners:
+  - name: web
+    port: 80
+    protocol: HTTP
+    allowedRoutes:
+      namespaces:
+        from: Selector
+        selector:
+          matchLabels:
+            network: lan
+  - name: websecure
+    port: 443
+    protocol: HTTPS
+    allowedRoutes:
+      namespaces:
+        from: Selector
+        selector:
+          matchLabels:
+            network: lan
+    tls:
+      mode: Terminate
+      certificateRefs:
+        # Domaine pour les certificat dynamique
+        - name: sec-tls-wildcard-coolcorp-priv
+          namespace: {{ var_namespaces_certmanager }}
+        # Certificat par défaut
+        - name: sec-gateway-default-cert  

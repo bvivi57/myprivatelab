@@ -1,0 +1,75 @@
+---
+#Création des dossier de reception des configurations
+- name: Creates traefik configuration directory for admin user
+  become: yes
+  file:
+    path: "/home/{{ var_admin_user}}/{{ var_vip_kub_endpoint }}/traefik"
+    state: directory
+    owner: "{{ var_admin_user}}"
+    mode: 0770 
+    recurse: yes
+  when: inventory_hostname.startswith('prdk8sctp')
+  tags: role_k8s.configure-traefik.directory
+
+#Création de la configuration traefik pour le LAN
+- name: "Set traefik lan configuration"
+  become: yes
+  template:
+    src: "traefik-config-lan.yaml.j2"
+    dest: "/home/{{ var_admin_user}}/{{ var_vip_kub_endpoint }}/traefik/traefik-config-lan.yaml"
+    owner: "{{ var_admin_user}}"  
+    mode: 0770   
+  when: inventory_hostname.startswith('prdk8sctp')
+  tags: role_k8s.configure-traefik.lanconfig
+
+#Création du compte de service pour Traefik en LAN
+- name: "Set traefik service lan account"
+  become: yes
+  template:
+    src: "svc-traefik-lan.yaml.j2"
+    dest: "/home/{{ var_admin_user}}/{{ var_vip_kub_endpoint }}/traefik/svc-traefik-lan.yaml"
+    owner: "{{ var_admin_user}}"  
+    mode: 0770   
+  when: inventory_hostname.startswith('prdk8sctp')
+  tags: role_k8s.configure-traefik.servicelanaccount
+
+#Création de la configuration pour le dashboard Traefik en LAN
+- name: "Set traefik dashboard lan configuration"
+  become: yes
+  template:
+    src: "traefik-lan-dashboard.yaml.j2"
+    dest: "/home/{{ var_admin_user}}/{{ var_vip_kub_endpoint }}/traefik/traefik-lan-dashboard.yaml"
+    owner: "{{ var_admin_user}}"  
+    mode: 0770   
+  when: inventory_hostname.startswith('prdk8sctp')
+  tags: role_k8s.configure-traefik.lan-dashboard
+
+#Création de la configuration pour la gateway LAN
+- name: "Set gateway lan configuration"
+  become: yes
+  template:
+    src: "gateway-lan.yaml.j2"
+    dest: "/home/{{ var_admin_user}}/{{ var_vip_kub_endpoint }}/traefik/gateway-lan.yaml"
+    owner: "{{ var_admin_user}}"  
+    mode: 0770   
+  when: inventory_hostname.startswith('prdk8sctp')
+  tags: role_k8s.configure-traefik.gateway
+
+#copie de la clef et du certificat pour dash et la gateway
+- name: copy private key for dashboard & gateway
+  become: yes
+  copy:
+    src: traefikrubikub-gtw-lan.coolcorp.priv.key
+    dest: "/home/{{ var_admin_user}}/{{ var_vip_kub_endpoint }}/traefik/traefikrubikub-gtw-lan.coolcorp.priv.key"
+    owner: "{{ var_admin_user}}"
+    mode: u=rwx,g=rx,o=r    
+  tags: role_k8s.configure-traefik.gateway
+
+- name: copy cert for dashboard & gateway
+  become: yes
+  copy:
+    src: traefikrubikub-gtw-lan.coolcorp.priv.cer
+    dest: "/home/{{ var_admin_user}}/{{ var_vip_kub_endpoint }}/traefik/traefikrubikub-gtw-lan.coolcorp.priv.cer"
+    owner: "{{ var_admin_user}}"
+    mode: u=rwx,g=rx,o=r    
+  tags: role_k8s.configure-traefik.gateway
