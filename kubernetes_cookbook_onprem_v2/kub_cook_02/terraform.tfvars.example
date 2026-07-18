@@ -1,0 +1,62 @@
+# ===========================================================================
+# Exemple de variables — COPIER en `terraform.tfvars` puis renseigner.
+#
+# Auth XO : NE PAS mettre ici. Exporter dans l'environnement avant terraform.
+# L'URL est en WEBSOCKET (ws:// ou wss://), pas en https:// :
+#   PowerShell : $env:XOA_URL = "wss://prdxcpxor501.coolcorp.priv:8443"; $env:XOA_TOKEN = "<token>"
+#   Bash       : export XOA_URL="wss://prdxcpxor501.coolcorp.priv:8443" XOA_TOKEN="<token>"
+#
+# Topologie XCP-ng : 3 pools vus par le même XO
+#   - pool "xcp-pool"      : hôtes prdxcpsrv001 / prdxcpsrv002 / prdxcpsrv003 (template ICI)
+#   - pool "prdxcpsrv004"  : hôte  prdxcpsrv004
+#   - pool "prdxcpsrv005"  : hôte  prdxcpsrv005
+# Stockage LOCAL par hôte (SR par hôte). PRÉREQUIS multi-pool : le template
+# prdtplroc501 doit être COPIÉ sur chaque pool utilisé (copie cross-pool dans XO).
+#
+# Déploiement complet : 11 VMs réparties sur les 3 pools (HA : 3 CP sur 3 pools,
+# chaque paire HAProxy sur 2 pools — cf. docs/ARCHITECTURE.md, décision D6).
+# IPs conformes au plan d'adressage ARCHITECTURE.md (LAN 192.168.10.0/24 gw .253,
+# DMZ 192.168.5.0/24 gw .253). Renseigner les name_label RÉELS (vus dans XO) des
+# réseaux LAN/DMZ de chaque pool et du SR local de chaque hôte.
+# ===========================================================================
+
+# Certificat XO auto-signé non approuvé par le poste : désactive la vérification
+# TLS du provider (XOA_INSECURE n'est pas fiable sur le provider 0.39.x).
+xoa_insecure = true
+
+pools = {
+  "xcp-pool"     = { lan_network_name = "REMPLACER_LAN_xcp-pool", dmz_network_name = "REMPLACER_DMZ_xcp-pool" }
+  "prdxcpsrv004" = { lan_network_name = "REMPLACER_LAN_004", dmz_network_name = "REMPLACER_DMZ_004" }
+  "prdxcpsrv005" = { lan_network_name = "REMPLACER_LAN_005", dmz_network_name = "REMPLACER_DMZ_005" }
+}
+
+hosts = {
+  prdxcpsrv001 = { pool = "xcp-pool", sr_name = "REMPLACER_SR_LOCAL_srv001" }
+  prdxcpsrv002 = { pool = "xcp-pool", sr_name = "REMPLACER_SR_LOCAL_srv002" }
+  prdxcpsrv003 = { pool = "xcp-pool", sr_name = "REMPLACER_SR_LOCAL_srv003" }
+  prdxcpsrv004 = { pool = "prdxcpsrv004", sr_name = "Local-NVMe-Kingston-1TB-srv004" }
+  prdxcpsrv005 = { pool = "prdxcpsrv005", sr_name = "REMPLACER_SR_LOCAL_srv005" }
+}
+
+nodes = {
+  # --- Control plane (1 par pool = HA maximale) ---
+  prdk8sgru501 = { role = "control-plane", ansible_group = "k8s_controlplane_lan", zone = "lan", host = "prdxcpsrv001", ip = "192.168.10.161", cpus = 4, memory_gb = 6, disk_gb = 60 }
+  prdk8sgru502 = { role = "control-plane", ansible_group = "k8s_controlplane_lan", zone = "lan", host = "prdxcpsrv004", ip = "192.168.10.162", cpus = 4, memory_gb = 6, disk_gb = 60 }
+  prdk8sgru503 = { role = "control-plane", ansible_group = "k8s_controlplane_lan", zone = "lan", host = "prdxcpsrv005", ip = "192.168.10.163", cpus = 4, memory_gb = 6, disk_gb = 60 }
+
+  # --- Workers LAN ---
+  prdk8smin501 = { role = "worker", ansible_group = "k8s_workers_lan", zone = "lan", host = "prdxcpsrv002", ip = "192.168.10.171", cpus = 4, memory_gb = 6, disk_gb = 80, traefik = true }
+  prdk8smin502 = { role = "worker", ansible_group = "k8s_workers_lan", zone = "lan", host = "prdxcpsrv004", ip = "192.168.10.172", cpus = 4, memory_gb = 6, disk_gb = 80, traefik = true }
+
+  # --- Workers DMZ (nécessitent dmz_network_name sur le pool de l'hôte) ---
+  prdk8smin510 = { role = "worker", ansible_group = "k8s_workers_web", zone = "dmz", host = "prdxcpsrv003", ip = "192.168.5.171", cpus = 4, memory_gb = 6, disk_gb = 80, traefik = true }
+  prdk8smin511 = { role = "worker", ansible_group = "k8s_workers_web", zone = "dmz", host = "prdxcpsrv005", ip = "192.168.5.172", cpus = 4, memory_gb = 6, disk_gb = 80, traefik = true }
+
+  # --- HAProxy LAN (paire sur 2 pools) ---
+  prdnlbhap501 = { role = "haproxy", ansible_group = "nlb_haproxy_lan", zone = "lan", host = "prdxcpsrv001", ip = "192.168.10.185", cpus = 2, memory_gb = 2, disk_gb = 60 }
+  prdnlbhap502 = { role = "haproxy", ansible_group = "nlb_haproxy_lan", zone = "lan", host = "prdxcpsrv004", ip = "192.168.10.186", cpus = 2, memory_gb = 2, disk_gb = 60 }
+
+  # --- HAProxy DMZ (paire sur 2 pools) ---
+  prdnlbhap510 = { role = "haproxy", ansible_group = "nlb_haproxy_web", zone = "dmz", host = "prdxcpsrv002", ip = "192.168.5.185", cpus = 2, memory_gb = 2, disk_gb = 60 }
+  prdnlbhap511 = { role = "haproxy", ansible_group = "nlb_haproxy_web", zone = "dmz", host = "prdxcpsrv005", ip = "192.168.5.186", cpus = 2, memory_gb = 2, disk_gb = 60 }
+}
